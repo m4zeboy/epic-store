@@ -1,16 +1,37 @@
+import ProductCard from "src/components/ProductCard";
 import { stripe } from "src/utils/stripe"
 
-export default async function Home() {
-  const {props} = await getStaticProps();
-  console.log(props.products.data);
-  return props.products.data.map(p => <div key={p.id}>{p.name}</div>)
-}
 
 export async function getStaticProps() {
-  const inventory = await stripe.products.list({ limit: 8 });
-  return {
-    props: {
-      products: inventory
+  const inventory = await stripe.products.list({ 
+    limit: 8,
+    expand: ["data.default_price"]
+   });
+
+  const products = inventory.data.map(product => {
+    const price = product.default_price
+    return {
+      currency: price.currency,
+      id: product.id,
+      name: product.name,
+      price: price.unit_amount,
+      image: product.images[0]
     }
-  }
+  })
+
+  return products
 }
+
+export default async function Home() {
+  const products = await getStaticProps();
+  return (
+    <div className="container xl:max-w-screen-xl mx-auto py-12 px-6">
+      <div className="grid gap-8 xl:grid-cols-4 lg:grid-cols-3 sm:grid-cols-2 xs:grid-cols-1">
+        {products.map((product, index) => (
+          <ProductCard key={product.id} product={product} index={index}/>
+        ))}
+      </div>
+    </div>
+  )
+}
+
